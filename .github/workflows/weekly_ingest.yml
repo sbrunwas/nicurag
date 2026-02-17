@@ -1,0 +1,32 @@
+name: Weekly Ingestion
+
+on:
+  schedule:
+    - cron: '0 6 * * 0'
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Run ingestion
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DRIVE_PUBLIC_FOLDER_ID: ${{ vars.DRIVE_PUBLIC_FOLDER_ID }}
+          INGEST_SINCE_DAYS: ${{ vars.INGEST_SINCE_DAYS }}
+        run: python -m ingest.ingest_runner --since-days ${INGEST_SINCE_DAYS:-8}
